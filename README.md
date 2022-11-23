@@ -7,3 +7,4 @@ zig build
 
 ![Snake](<https://github.com/linuxy/coyote-snake/blob/main/assets/snake.gif> "snake!")
 # coyote-bunnies
+# coyote-bunnies
