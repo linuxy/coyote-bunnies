@@ -44,7 +44,8 @@ pub const Game = struct {
     bunny_texture: ?*c.SDL_Texture,
     font: ?*c.TTF_Font,
 
-    mouseHeld: bool,
+    leftMouseHeld: bool,
+    rightMouseHeld: bool,
     mouseX: c_int,
     mouseY: c_int,
     bunnies_pre: u32,
@@ -52,6 +53,9 @@ pub const Game = struct {
     bunnies_start: i64,
     game_start: i64,
     frame_num: i64,
+    last_frame: i64,
+    last_fps: i64,
+    last_update: i64,
 
     screenWidth: c_int,
     screenHeight: c_int,
@@ -88,7 +92,11 @@ pub const Game = struct {
         self.bunny_texture = try loadTexture(self, "assets/images/bunny.png");
         self.isRunning = true;
         self.frame_num = 0;
+        self.last_frame = 0;
         self.game_start = std.time.milliTimestamp();
+        self.last_fps = 0;
+        self.last_update = 0;
+
         return self;
     }
 
@@ -102,14 +110,20 @@ pub const Game = struct {
                     self.isRunning = false;
                 },
                 c.SDL_MOUSEBUTTONDOWN => {
-                    self.mouseHeld = true;
-                    self.bunnies_start = std.time.milliTimestamp();
-                    self.bunnies_pre = self.world.entities.count();
+                    if(event.button.button == c.SDL_BUTTON_LEFT) {
+                        self.leftMouseHeld = true;
+                    }
+                    if(event.button.button == c.SDL_BUTTON_RIGHT) {
+                        self.rightMouseHeld = true;
+                    }
                 },
                 c.SDL_MOUSEBUTTONUP => {
-                    self.mouseHeld = false;
-                    self.bunnies_post = self.world.entities.count();
-                    //std.log.info("Bunnies: {} BPS: {}", .{self.bunnies_post, @divTrunc(self.bunnies_post - self.bunnies_pre, @divTrunc(std.time.milliTimestamp() - self.bunnies_start, 1000)+1)});
+                    if(event.button.button == c.SDL_BUTTON_LEFT) {
+                        self.leftMouseHeld = false;
+                    }
+                    if(event.button.button == c.SDL_BUTTON_RIGHT) {
+                        self.rightMouseHeld = false;
+                    }
                 },
                 c.SDL_KEYDOWN => {
                     switch(event.key.keysym.sym) {
@@ -119,8 +133,11 @@ pub const Game = struct {
                 else => {},
             }
         }
-        if(self.mouseHeld) {
+        if(self.leftMouseHeld) {
             try addBunny(self.world, self.mouseX, self.mouseY);
+        } else if(self.rightMouseHeld) {
+            try removeBunny(self.world);
+            std.log.info("1000 removed? bunnies: {}", .{self.world.components.count()});
         }
     }
 
@@ -198,12 +215,20 @@ pub fn Render(world: *World, game: *Game) !void {
     _ = c.SDL_SetRenderDrawColor(game.renderer, 255, 255, 255, 255);
 
     var color = c.SDL_Color{.r = 255, .g = 100, .b = 255, .a = 0 };
-    var time = @divTrunc(game.frame_num, @divTrunc(std.time.milliTimestamp() - game.game_start, 1000)+1);
-    var fps = std.fmt.bufPrintIntToSlice(int_buf, time, 10, .lower, .{});
-    var comps = std.fmt.bufPrintIntToSlice(int2_buf, world.components.count(), 10, .lower, .{});
-    var text = try std.mem.concat(allocator, u8, &[_][]const u8{fps, " FPS      Coyote-ECS    Bunnies: ", comps});
+    var new_fps: i64 = 0;
+    if(std.time.milliTimestamp() - game.last_update > 1000) {
+        new_fps = game.frame_num - game.last_frame;
+        game.last_frame = game.frame_num;
+        game.last_fps = new_fps;
+        game.last_update = std.time.milliTimestamp();
+    } else {
+        new_fps = game.last_fps;
+    }
+    var fps = std.fmt.bufPrintIntToSlice(int_buf, new_fps, 10, .lower, .{})[0..];
+    _ = std.fmt.bufPrintIntToSlice(int2_buf, world.components.count(), 10, .lower, .{});
+    var text = try std.mem.concat(allocator, u8, &[_][]const u8{fps, " FPS      Coyote-ECS    Bunnies: ", int2_buf});
 
-    var surface = c.TTF_RenderText_Solid(game.font, @ptrCast([*:0]u8, text), color);
+    var surface = c.TTF_RenderText_Solid(game.font, @ptrCast([*c]u8, text), color);
     var texture = c.SDL_CreateTextureFromSurface(game.renderer, surface);
     var textW: c_int = 0;
     var textH: c_int = 0;
@@ -264,6 +289,18 @@ pub inline fn addBunny(world: *World, x: c_int, y: c_int) !void {
             .speed = @Vector(2,f64){@intToFloat(f64, random.random().intRangeLessThan(i64, -250, 250)) / 60.0, @intToFloat(f64, random.random().intRangeLessThan(i64, -250, 250)) / 60.0},
             .color = @Vector(3,u8){random.random().intRangeLessThan(u8, 50, 240), random.random().intRangeLessThan(u8, 80, 240), random.random().intRangeLessThan(u8, 100, 240)}
         });
+    }
+}
+
+pub inline fn removeBunny(world: *World) !void {
+    var it = world.components.iterator();
+    var i: u32 = 0;
+    outer: while(it.next()) |component| : (i += 1) {
+        if(i < 1000) {
+            component.destroy();
+        } else {
+            break :outer;
+        }
     }
 }
 
