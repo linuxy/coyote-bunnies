@@ -137,7 +137,6 @@ pub const Game = struct {
             try addBunny(self.world, self.mouseX, self.mouseY);
         } else if(self.rightMouseHeld) {
             try removeBunny(self.world);
-            std.log.info("1000 removed? bunnies: {}", .{self.world.components.count()});
         }
     }
 
@@ -286,8 +285,11 @@ pub inline fn addBunny(world: *World, x: c_int, y: c_int) !void {
         try bunny.attach(position, Components.Position{
             .x = @intToFloat(f64, x),
             .y = @intToFloat(f64, y),
-            .speed = @Vector(2,f64){@intToFloat(f64, random.random().intRangeLessThan(i64, -250, 250)) / 60.0, @intToFloat(f64, random.random().intRangeLessThan(i64, -250, 250)) / 60.0},
-            .color = @Vector(3,u8){random.random().intRangeLessThan(u8, 50, 240), random.random().intRangeLessThan(u8, 80, 240), random.random().intRangeLessThan(u8, 100, 240)}
+            .speed = @Vector(2,f64){@intToFloat(f64, random.random().intRangeLessThan(i64, -250, 250)) / 60.0,
+                                    @intToFloat(f64, random.random().intRangeLessThan(i64, -250, 250)) / 60.0},
+            .color = @Vector(3,u8){random.random().intRangeLessThan(u8, 50, 240),
+                                   random.random().intRangeLessThan(u8, 80, 240),
+                                   random.random().intRangeLessThan(u8, 100, 240)}
         });
     }
 }
@@ -295,11 +297,11 @@ pub inline fn addBunny(world: *World, x: c_int, y: c_int) !void {
 pub inline fn removeBunny(world: *World) !void {
     var it = world.components.iterator();
     var i: u32 = 0;
-    outer: while(it.next()) |component| : (i += 1) {
+    while(it.next()) |component| : (i += 1) {
         if(i < 1000) {
             component.destroy();
         } else {
-            break :outer;
+            break;
         }
     }
 }
