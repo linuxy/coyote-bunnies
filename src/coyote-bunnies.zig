@@ -5,6 +5,7 @@ var random: std.rand.DefaultPrng = undefined;
 const c = @cImport({
     @cInclude("SDL2/SDL.h");
     @cInclude("SDL2/SDL_image.h");
+    @cInclude("SDL2/SDL_ttf.h");
 });
 
 const World = ecs.World;
@@ -41,12 +42,16 @@ pub const Game = struct {
     renderer: ?*c.SDL_Renderer,
 
     bunny_texture: ?*c.SDL_Texture,
+    font: ?*c.TTF_Font,
+
     mouseHeld: bool,
     mouseX: c_int,
     mouseY: c_int,
     bunnies_pre: u32,
     bunnies_post: u32,
     bunnies_start: i64,
+    game_start: i64,
+    frame_num: i64,
 
     screenWidth: c_int,
     screenHeight: c_int,
@@ -73,9 +78,17 @@ pub const Game = struct {
             return error.SDLInitializationFailed;
         };
 
+        if(c.TTF_Init() != 0) {
+            c.SDL_Log("Unable to initialized fonts: %s", c.SDL_GetError());
+            return error.SDLFontInitializationFailed;
+        }
+
+        self.font = c.TTF_OpenFont("assets/fonts/mecha.ttf", 20);
+        
         self.bunny_texture = try loadTexture(self, "assets/images/bunny.png");
         self.isRunning = true;
-
+        self.frame_num = 0;
+        self.game_start = std.time.milliTimestamp();
         return self;
     }
 
@@ -96,7 +109,7 @@ pub const Game = struct {
                 c.SDL_MOUSEBUTTONUP => {
                     self.mouseHeld = false;
                     self.bunnies_post = self.world.entities.count();
-                    std.log.info("Bunnies: {} BPS: {}", .{self.bunnies_post, @divTrunc(self.bunnies_post - self.bunnies_pre, @divTrunc(std.time.milliTimestamp() - self.bunnies_start, 1000)+1)});
+                    //std.log.info("Bunnies: {} BPS: {}", .{self.bunnies_post, @divTrunc(self.bunnies_post - self.bunnies_pre, @divTrunc(std.time.milliTimestamp() - self.bunnies_start, 1000)+1)});
                 },
                 c.SDL_KEYDOWN => {
                     switch(event.key.keysym.sym) {
@@ -113,6 +126,8 @@ pub const Game = struct {
 
     pub fn deinit(self: *Game) void {
         self.isRunning = false;
+        c.TTF_CloseFont(self.font);
+        c.TTF_Quit();
         c.SDL_DestroyRenderer(self.renderer);
         c.SDL_DestroyWindow(self.window);
         c.SDL_QuitSubSystem(c.SDL_INIT_VIDEO);
@@ -154,17 +169,52 @@ pub fn Render(world: *World, game: *Game) !void {
 
     _ = c.SDL_RenderClear(game.renderer);
     _ = c.SDL_SetRenderDrawColor(game.renderer, 255, 255, 255, 255);
-    
+
     //Render Bunnies
-    var start = std.time.milliTimestamp();
+    //var start = std.time.milliTimestamp();
     var bunnies = world.components.iterator();
     while(bunnies.next()) |bunny| 
     {
         var position = Cast(Components.Position, bunny);
         try renderToScreen(game, game.bunny_texture, @floatToInt(c_int, @round(position.x)), @floatToInt(c_int, @round(position.y)), position.color);
     }
-    std.log.info("Rendered bunnies in {}ms", .{std.time.milliTimestamp() - start});
+    //std.log.info("Rendered bunnies in {}ms", .{std.time.milliTimestamp() - start});
+
+    var ibuf: [0x100]u8 = std.mem.zeroes([0x100]u8);
+    const int_buf = ibuf[0..];
+
+    var ibuf2: [0x100]u8 = std.mem.zeroes([0x100]u8);
+    const int2_buf = ibuf2[0..];
+
+    //Render Stats
+    var bar_rect: c.SDL_Rect = undefined;
+    bar_rect.x = 0;
+    bar_rect.y = 0;
+    bar_rect.w = SCREEN_WIDTH;
+    bar_rect.h = 40;
+
+    _ = c.SDL_SetRenderDrawColor(game.renderer, 0, 0, 0, 0);
+    _ = c.SDL_RenderFillRect(game.renderer, &bar_rect);
+    _ = c.SDL_SetRenderDrawColor(game.renderer, 255, 255, 255, 255);
+
+    var color = c.SDL_Color{.r = 255, .g = 100, .b = 255, .a = 0 };
+    var time = @divTrunc(game.frame_num, @divTrunc(std.time.milliTimestamp() - game.game_start, 1000)+1);
+    var fps = std.fmt.bufPrintIntToSlice(int_buf, time, 10, .lower, .{});
+    var comps = std.fmt.bufPrintIntToSlice(int2_buf, world.components.count(), 10, .lower, .{});
+    var text = try std.mem.concat(allocator, u8, &[_][]const u8{fps, " FPS      Coyote-ECS    Bunnies: ", comps});
+
+    var surface = c.TTF_RenderText_Solid(game.font, @ptrCast([*:0]u8, text), color);
+    var texture = c.SDL_CreateTextureFromSurface(game.renderer, surface);
+    var textW: c_int = 0;
+    var textH: c_int = 0;
+    _ = c.SDL_QueryTexture(texture, null, null, &textW, &textH);
+    var dest_text = c.SDL_Rect{.x = 10, .y = 10, .w = textW, .h = textH};
+    _ = c.SDL_RenderCopy(game.renderer, texture, null, &dest_text);
+
     c.SDL_RenderPresent(game.renderer);
+    c.SDL_DestroyTexture(texture);
+    c.SDL_FreeSurface(surface);
+    game.frame_num += 1;
 }
 
 pub fn Update(world: *World, game: *Game) !void {
