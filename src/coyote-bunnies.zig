@@ -336,32 +336,3 @@ pub inline fn loadTexture(game: *Game, path: []const u8) !?*c.SDL_Texture {
 
     return texture;
 }
-
-pub inline fn distanceTo(self: *Components.Position, x: f64, y: f64) f64 {
-    return @sqrt(@exp2(@fabs(x - self.x))) + @exp2((@fabs(y - self.y)));
-}
-
-pub inline fn distanceToPosition(self: *Components.Position, other: *Components.Position) f64 {
-    return distanceTo(self, other.x, other.y);
-}
-
-pub inline fn moveTowards(self: *Components.Position, target: @Vector(2, f64)) f64 {
-    if(self.speed_delta > MAX_DIST)
-        self.speed_delta = MAX_DIST;
-
-    if(distanceTo(self, target[0], target[1]) > self.speed_delta) {
-        if(self.x < target[0])
-            self.x += self.speed_delta;
-
-        if(self.x > target[0])
-            self.x -= self.speed_delta;
-
-        if(self.y < target[1])
-            self.y += self.speed_delta;
-
-        if(self.y > target[1])
-            self.y -= self.speed_delta;
-    }
-    self.in_motion = true;
-    return distanceTo(self, target[0], target[1]);
-}
