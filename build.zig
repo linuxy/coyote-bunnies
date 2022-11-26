@@ -13,6 +13,7 @@ pub fn build(b: *std.build.Builder) void {
     //Linux paths
     exe.addIncludePath("/usr/include");
     exe.addIncludePath("/usr/include/x86_64-linux-gnu");
+    exe.addIncludePath("vendor/coyote-ecs/vendor/CRoaring/include");
     //Homebrew OSX paths
     exe.addIncludePath("/opt/homebrew/Cellar/sdl2/2.24.2/include");
     exe.addLibraryPath("/opt/homebrew/Cellar/sdl2/2.24.2/lib");
@@ -20,9 +21,11 @@ pub fn build(b: *std.build.Builder) void {
     exe.linkSystemLibrary("SDL2_image");
     exe.linkSystemLibrary("SDL2_ttf");
     exe.addLibraryPath("vendor/coyote-ecs/vendor/mimalloc");
+    exe.addLibraryPath("vendor/coyote-ecs/vendor/CRoaring/build/src");
     exe.linkSystemLibrary("mimalloc");
+    exe.linkSystemLibrary("roaring");
     exe.addPackage(ecsPkg);
-    exe.use_stage1 = true;
+    //exe.use_stage1 = true;
     exe.install();
 
     const run_cmd = exe.run();

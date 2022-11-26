@@ -161,7 +161,7 @@ pub const Components = struct {
         y: f64 = 0.0,
         in_motion: bool = false,
         speed: @Vector(2, f64) = @Vector(2, f64){0, 0},
-        color: @Vector(3, u8) = @Vector(3, u8){0, 0},
+        color: @Vector(3, u8) = @Vector(3, u8){0, 0, 0},
         time: Time = .{.updated = 0,
                        .delta = 0.0},
     };
@@ -187,14 +187,15 @@ pub fn Render(world: *World, game: *Game) !void {
     _ = c.SDL_SetRenderDrawColor(game.renderer, 255, 255, 255, 255);
 
     //Render Bunnies
-    //var start = std.time.milliTimestamp();
+    var start = std.time.milliTimestamp();
     var bunnies = world.components.iterator();
-    while(bunnies.next()) |bunny| 
+    var i: usize = 0;
+    while(bunnies.next()) |bunny| : (i += 1)
     {
         var position = Cast(Components.Position, bunny);
         try renderToScreen(game, game.bunny_texture, @floatToInt(c_int, @round(position.x)), @floatToInt(c_int, @round(position.y)), position.color);
     }
-    //std.log.info("Rendered bunnies in {}ms", .{std.time.milliTimestamp() - start});
+    std.log.info("Rendered {} bunnies in {}ms", .{i, std.time.milliTimestamp() - start});
 
     var ibuf: [0x100]u8 = std.mem.zeroes([0x100]u8);
     const int_buf = ibuf[0..];
@@ -304,6 +305,8 @@ pub inline fn removeBunny(world: *World) !void {
             break;
         }
     }
+    std.log.info("Bunnies: {} deleted: {}", .{world.components.count(), i});
+    world.components.sync();
 }
 
 pub inline fn renderToScreen(game: *Game, texture: ?*c.SDL_Texture, x: c_int, y: c_int, rgb: @Vector(3, u8)) !void {
