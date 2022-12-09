@@ -161,7 +161,7 @@ pub const Components = struct {
         y: f64 = 0.0,
         in_motion: bool = false,
         speed: @Vector(2, f64) = @Vector(2, f64){0, 0},
-        color: @Vector(3, u8) = @Vector(3, u8){0, 0},
+        color: @Vector(3, u8) = @Vector(3, u8){0, 0, 0},
         time: Time = .{.updated = 0,
                        .delta = 0.0},
     };

@@ -22,7 +22,6 @@ pub fn build(b: *std.build.Builder) void {
     exe.addLibraryPath("vendor/coyote-ecs/vendor/mimalloc");
     exe.linkSystemLibrary("mimalloc");
     exe.addPackage(ecsPkg);
-    exe.use_stage1 = true;
     exe.install();
 
     const run_cmd = exe.run();
