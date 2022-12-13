@@ -135,7 +135,9 @@ pub const Game = struct {
         }
         if(self.leftMouseHeld) {
             try addBunny(self.world, self.mouseX, self.mouseY);
-        } else if(self.rightMouseHeld) {
+        }
+        //else if doesn't exist in -Drelease-fast apparently
+        if(self.rightMouseHeld) {
             try removeBunny(self.world);
         }
     }
@@ -191,6 +193,9 @@ pub fn Render(world: *World, game: *Game) !void {
     var bunnies = world.components.iterator();
     while(bunnies.next()) |bunny| 
     {
+        if(bunny.magic != ecs.MAGIC)
+            continue;
+
         var position = Cast(Components.Position, bunny);
         try renderToScreen(game, game.bunny_texture, @floatToInt(c_int, @round(position.x)), @floatToInt(c_int, @round(position.y)), position.color);
     }
