@@ -1,6 +1,8 @@
 # coyote-bunnies
 A benchmark for [coyote-ecs](https://github.com/linuxy/coyote-ecs), a fast and simple zig native ECS.
 
+builds against zig 0.11.0-dev.848+90477e5c1+
+
 ```git clone --recursive https://github.com/linuxy/coyote-bunnies.git```
 
 To build:
