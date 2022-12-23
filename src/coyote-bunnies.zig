@@ -309,6 +309,7 @@ pub inline fn removeBunny(world: *World) !void {
             break;
         }
     }
+    world.components.gc();
 }
 
 pub inline fn renderToScreen(game: *Game, texture: ?*c.SDL_Texture, x: c_int, y: c_int, rgb: @Vector(3, u8)) !void {
