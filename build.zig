@@ -15,9 +15,19 @@ pub fn build(b: *std.build.Builder) void {
     //Homebrew OSX paths
     exe.addIncludePath("/opt/homebrew/Cellar/sdl2/2.24.2/include");
     exe.addLibraryPath("/opt/homebrew/Cellar/sdl2/2.24.2/lib");
-    exe.linkSystemLibrary("SDL2");
-    exe.linkSystemLibrary("SDL2_image");
-    exe.linkSystemLibrary("SDL2_ttf");
+    if (exe.target.isWindows()) {
+        exe.addIncludePath("/msys64/mingw64/include");
+        exe.addObjectFile("/msys64/mingw64/lib/libSDL2.dll.a");
+        exe.addObjectFile("/msys64/mingw64/lib/libSDL2_ttf.dll.a");
+        exe.addObjectFile("/msys64/mingw64/lib/libSDL2_image.dll.a");
+        b.installBinFile("/msys64/mingw64/bin/SDL2.dll", "SDL2.dll");
+        b.installBinFile("/msys64/mingw64/bin/SDL2_ttf.dll", "SDL2_ttf.dll");
+        b.installBinFile("/msys64/mingw64/bin/SDL2_image.dll", "SDL2_image.dll");
+    } else {
+        exe.linkSystemLibrary("SDL2");
+        exe.linkSystemLibrary("SDL2_image");
+        exe.linkSystemLibrary("SDL2_ttf");
+    }
     exe.addPackage(ecsPkg);
     exe.addPackage(rpmPkg);
     exe.install();
