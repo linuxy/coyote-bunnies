@@ -262,12 +262,10 @@ pub inline fn updateSpaceTime(world: *World) !void {
         if(component.attached) {
             var position = Cast(Components.Position, component);
             var last_update = position.time.updated;
-            var delta = @intToFloat(f64, c.SDL_GetTicks() - last_update) / 1000.0;
-            //Works correctly on stage2 not stage1
-            //try component.set(Components.Position, .{ .speed_delta = speed_delta, .time = .{.updated = c.SDL_GetTicks(), .delta = delta} });
+            var delta = @intToFloat(f64, c.SDL_GetTicks() - last_update) / 10.0;
 
-            position.x += position.speed[0];
-            position.y += position.speed[1];
+            position.x += position.speed[0] * delta;
+            position.y += position.speed[1] * delta;
 
             if(position.x + BUNNY_WIDTH / 2 > SCREEN_WIDTH or position.x + BUNNY_WIDTH/2 < 0)
                 position.speed[0] *= -1;
@@ -294,7 +292,8 @@ pub inline fn addBunny(world: *World, x: c_int, y: c_int) !void {
                                     @intToFloat(f64, random.random().intRangeLessThan(i64, -250, 250)) / 60.0},
             .color = @Vector(3,u8){random.random().intRangeLessThan(u8, 50, 240),
                                    random.random().intRangeLessThan(u8, 80, 240),
-                                   random.random().intRangeLessThan(u8, 100, 240)}
+                                   random.random().intRangeLessThan(u8, 100, 240)},
+            .time = Time{ .updated = c.SDL_GetTicks() },
         });
     }
 }
